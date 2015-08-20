@@ -1,0 +1,25 @@
+.post-content {
+    /*white-space: pre;*/
+    font-size: 20px;
+    /*word-wrap: normal;*/
+    /*word-break: break-all;*/
+    /*width: 300px;*/
+    /*word-wrap: break-word;*/
+}
+h2,.post-date {
+    /*float: right;*/
+    display: inline;
+    /*vertical-align: bottom;*/
+
+}
+
+.post-date {
+    float: right;
+    /*position: relative;*/
+    /*bottom: 0px;*/
+    color: #999;
+}
+hr{
+    padding: 0px;
+    margin: 0px;
+  }

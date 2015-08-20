@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="/favicon.ico">
+    <title>Chingu's blog</title>
+
+     <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <!-- Custom styles for this template -->
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+</head>
+<body>
+<div class="container">
+	<div class="blog-header jumbotron">
+        <h1 class="blog-title"><a href="/"> Chingu's blog</a></h1>
+        <p class="lead blog-description">Experimental blog created while learning web app development</p>
+    </div>
+
+
+    <!--<div class="row">-->
+
+    <!--</div>-->
+
+{% for post in posts %}
+    <div class="post">
+        <div class="post-subject">
+            <h2 class="post-header"> <a href="/{{post.key().id()}}">{{post.subject}}</a></h2>
+            <div class="post-date">{{post.date}}</div>
+        </div>
+
+        <hr>
+        <div class="post-content">
+            {% for line in post.content.splitlines() %}
+                {{line}}<br>
+            {% endfor %}
+        </div>
+    </div>
+    <br>
+{% endfor %}
+</div>
+</body>
+</html>
