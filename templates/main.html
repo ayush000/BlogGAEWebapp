@@ -31,7 +31,7 @@
     <div class="post">
         <div class="post-subject">
             <h2 class="post-header"> <a href="/{{post.key().id()}}">{{post.subject}}</a></h2>
-            <div class="post-date">{{post.date}}</div>
+            <div class="post-date">{{post.date.strftime("%b %d, %Y")}}</div>
         </div>
 
         <hr>
