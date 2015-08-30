@@ -55,6 +55,8 @@ class Post(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     date = db.DateProperty(auto_now_add=True)
 
+class User(db.Model):
+    pass
 
 class NewPostHandler(Handler):
     def get(self):
@@ -89,8 +91,14 @@ class PostHandler(Handler):
         self.render('main.html', posts=posts)
 
 
+class SignupHandler(Handler):
+    def get(self):
+        self.render('signup.html')
+
+
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
     ('/newpost', NewPostHandler),
-    (r'/\d+', PostHandler)
+    (r'/\d+', PostHandler),
+    ('/signup',SignupHandler)
 ], debug=True)
