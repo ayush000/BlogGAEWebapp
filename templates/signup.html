@@ -37,7 +37,10 @@
             <label class="col-sm-2 control-label">Username</label>
 
             <div class="col-sm-4">
-                <input type="text" name="username" value="" class="form-control">
+                <input type="text" name="username" value="{{ user_name }}" class="form-control">
+            </div>
+            <div class="col-sm-6 error">
+                {{ user_error }}
             </div>
         </div>
         <div class="form-group">
@@ -46,6 +49,9 @@
             <div class="col-sm-4">
                 <input type="password" name="password" value="" class="form-control">
             </div>
+            <div class="col-sm-6 error">
+                {{ password_error }}
+            </div>
         </div>
         <div class="form-group">
             <label class="col-sm-2 control-label">Repeat password</label>
@@ -53,12 +59,18 @@
             <div class="col-sm-4">
                 <input type="password" name="verify" value="" class="form-control">
             </div>
+            <div class="col-sm-6 error">
+                {{ verify_error }}
+            </div>
         </div>
         <div class="form-group">
             <label class="col-sm-2 control-label">Email</label>
 
             <div class="col-sm-4">
-                <input type="text" name="email" value="" class="form-control">
+                <input type="text" name="email" value="{{ user_email }}" class="form-control">
+            </div>
+            <div class="col-sm-6 error">
+                {{ email_error }}
             </div>
         </div>
         <div class="form-group">

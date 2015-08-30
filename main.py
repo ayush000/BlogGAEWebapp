@@ -18,7 +18,29 @@ import os
 import webapp2
 import jinja2
 import time
+import re
+import random
+import string
+import hmac
+import hashlib
 from google.appengine.ext import db
+
+SECRET = "hunter2"
+
+
+def hash_str(s):
+    return hmac.new(SECRET, s).hexdigest()
+
+
+def make_secure_val(s):
+    return "{}|{}".format(s, hash_str(s))
+
+
+def check_secure_val(h):
+    val = h.split('|')[0]
+    if make_secure_val(val) == h:
+        return val
+
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(autoescape=True, extensions=['jinja2.ext.autoescape'],
@@ -55,14 +77,18 @@ class Post(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     date = db.DateProperty(auto_now_add=True)
 
+
 class User(db.Model):
-    pass
+    user_name = db.StringProperty(required=True)
+    user_password = db.StringProperty(required=True)
+    user_email = db.StringProperty()
+
 
 class NewPostHandler(Handler):
     def get(self):
         self.render("newpost.html")
 
-    def post(self, ):
+    def post(self):
         error = "subject and content, please!"
         subject = self.request.get("subject")
         content = self.request.get("content")
@@ -95,10 +121,78 @@ class SignupHandler(Handler):
     def get(self):
         self.render('signup.html')
 
+    def post(self):
+        user_error = ""
+        password_error = ""
+        verify_error = ""
+        email_error = ""
+        has_error = False
+
+        def match_user(user):
+            USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+            return USER_RE.match(user)
+
+        def match_password(password):
+            PASSWORD_RE = re.compile(r"^.{3,20}$")
+            return PASSWORD_RE.match(password)
+
+        def match_email(email):
+            EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
+            return EMAIL_RE.match(email)
+
+        user_name = self.request.get('username')
+        user_password = self.request.get('password')
+        user_verify = self.request.get('verify')
+        user_email = self.request.get('email')
+        user_list = db.GqlQuery('SELECT * FROM User')
+        if not match_user(user_name):
+            has_error = True
+            user_error = "Enter a valid username"
+        else:
+            for user in user_list:
+                if user_name == user.user_name:
+                    has_error = True
+                    user_error = "User already exists"
+
+        if not match_password(user_password):
+            has_error = True
+            password_error = "Enter a valid pasword"
+        elif not user_password == user_verify:
+            has_error = True
+            verify_error = "Passwords don't match"
+        if user_email:
+            if not match_email(user_email):
+                has_error = True
+                email_error = "Enter a valid email"
+        if has_error:
+            self.render("signup.html", user_name=user_name, user_email=user_email, user_error=user_error,
+                        password_error=password_error, verify_error=verify_error, email_error=email_error)
+        else:
+            hashed_password = make_secure_val(user_password)
+            u = User(user_name=user_name, user_password=hashed_password, user_email=user_email)
+            u.put()
+            secure_id=make_secure_val(user_name)
+            self.response.headers.add_header('Set-Cookie', 'user_id={}; Path=/'.format(secure_id))
+            self.redirect('/welcome')
+
+
+class WelcomeHandler(Handler):
+    def get(self):
+        user = self.request.cookies.get('user_id')
+        if user:
+            user_name=check_secure_val(user)
+            if user_name:
+                self.write("welcome, {}".format(user_name))
+            else:
+                self.redirect('/signup')
+        else:
+            self.redirect('/signup')
+
 
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
     ('/newpost', NewPostHandler),
     (r'/\d+', PostHandler),
-    ('/signup',SignupHandler)
+    ('/signup', SignupHandler),
+    ('/welcome', WelcomeHandler)
 ], debug=True)
