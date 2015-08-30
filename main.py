@@ -189,10 +189,30 @@ class WelcomeHandler(Handler):
             self.redirect('/signup')
 
 
+class LoginHandler(Handler):
+    def get(self):
+        self.render('login.html')
+
+    def post(self):
+        user_name=self.request.get('username')
+        user_password=self.request.get('password')
+        hashed_password=make_secure_val(user_password)
+        user_list=db.GqlQuery('SELECT * FROM User')
+        for user in user_list:
+            if user.user_name==user_name and user.user_password==hashed_password:
+                secure_id=make_secure_val(user_name)
+                self.response.headers.add_header('Set-Cookie', 'user_id={}; Path=/'.format(secure_id))
+                self.redirect('/welcome')
+            else:
+                self.render('login.html',user_name=user_name,login_error="Invalid login details")
+
+
+
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
     ('/newpost', NewPostHandler),
     (r'/\d+', PostHandler),
     ('/signup', SignupHandler),
-    ('/welcome', WelcomeHandler)
+    ('/welcome', WelcomeHandler),
+    ('/login',LoginHandler)
 ], debug=True)
