@@ -206,6 +206,11 @@ class LoginHandler(Handler):
             else:
                 self.render('login.html',user_name=user_name,login_error="Invalid login details")
 
+class LogoutHandler(Handler):
+    def get(self):
+        self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
+        self.redirect('/signup')
+
 
 
 app = webapp2.WSGIApplication([
@@ -214,5 +219,6 @@ app = webapp2.WSGIApplication([
     (r'/\d+', PostHandler),
     ('/signup', SignupHandler),
     ('/welcome', WelcomeHandler),
-    ('/login',LoginHandler)
+    ('/login',LoginHandler),
+    ('/logout',LogoutHandler)
 ], debug=True)
