@@ -15,14 +15,13 @@
 # limitations under the License.
 #
 import os
-import webapp2
-import jinja2
 import time
 import re
-import random
-import string
 import hmac
-import hashlib
+import json
+
+import webapp2
+import jinja2
 from google.appengine.ext import db
 
 SECRET = "hunter2"
@@ -40,6 +39,13 @@ def check_secure_val(h):
     val = h.split('|')[0]
     if make_secure_val(val) == h:
         return val
+
+def getApi(post):
+    out={}
+    out['subject']=post.subject
+    out['content']=post.content
+    out['created']=post.created.strftime("%c")
+    return out
 
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -171,7 +177,7 @@ class SignupHandler(Handler):
             hashed_password = make_secure_val(user_password)
             u = User(user_name=user_name, user_password=hashed_password, user_email=user_email)
             u.put()
-            secure_id=make_secure_val(user_name)
+            secure_id = make_secure_val(user_name)
             self.response.headers.add_header('Set-Cookie', 'user_id={}; Path=/'.format(secure_id))
             self.redirect('/welcome')
 
@@ -180,7 +186,7 @@ class WelcomeHandler(Handler):
     def get(self):
         user = self.request.cookies.get('user_id')
         if user:
-            user_name=check_secure_val(user)
+            user_name = check_secure_val(user)
             if user_name:
                 self.write("welcome, {}".format(user_name))
             else:
@@ -194,23 +200,50 @@ class LoginHandler(Handler):
         self.render('login.html')
 
     def post(self):
-        user_name=self.request.get('username')
-        user_password=self.request.get('password')
-        hashed_password=make_secure_val(user_password)
-        user_list=db.GqlQuery('SELECT * FROM User')
+        user_name = self.request.get('username')
+        user_password = self.request.get('password')
+        hashed_password = make_secure_val(user_password)
+        user_list = db.GqlQuery('SELECT * FROM User')
         for user in user_list:
-            if user.user_name==user_name and user.user_password==hashed_password:
-                secure_id=make_secure_val(user_name)
+            if user.user_name == user_name and user.user_password == hashed_password:
+                secure_id = make_secure_val(user_name)
                 self.response.headers.add_header('Set-Cookie', 'user_id={}; Path=/'.format(secure_id))
                 self.redirect('/welcome')
             else:
-                self.render('login.html',user_name=user_name,login_error="Invalid login details")
+                self.render('login.html', user_name=user_name, login_error="Invalid login details")
+
 
 class LogoutHandler(Handler):
     def get(self):
         self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
         self.redirect('/signup')
 
+
+class JsonHandler1(Handler):
+    def get(self):
+        posts = db.GqlQuery('SELECT * FROM Post')
+        jsonOut=[]
+        self.response.headers['Content-Type']='application/json'
+
+        for post in posts:
+            jsonOut.append(getApi(post))
+        jsonOut=json.dumps(jsonOut)
+
+
+        self.write(jsonOut)
+
+
+class JsonPostHandler(Handler):
+    def get(self):
+        post_path = self.request.path[1:-5]
+        # self.response.out.write(post_path)
+        post = Post.get_by_id(int(post_path))
+        if not post:
+            self.abort(404)
+            return
+        self.response.headers['Content-Type']='application/json'
+        self.write(json.dumps(getApi(post)))
+        # self.write(self.response.headers)
 
 
 app = webapp2.WSGIApplication([
@@ -219,6 +252,8 @@ app = webapp2.WSGIApplication([
     (r'/\d+', PostHandler),
     ('/signup', SignupHandler),
     ('/welcome', WelcomeHandler),
-    ('/login',LoginHandler),
-    ('/logout',LogoutHandler)
+    ('/login', LoginHandler),
+    ('/logout', LogoutHandler),
+    (r'/.json',JsonHandler1),
+    (r'/\d+.json',JsonPostHandler)
 ], debug=True)
