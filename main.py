@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import logging
 import os
 import time
 import re
@@ -23,6 +24,7 @@ import json
 import webapp2
 import jinja2
 from google.appengine.ext import db
+from google.appengine.api import memcache
 
 SECRET = "hunter2"
 
@@ -40,17 +42,33 @@ def check_secure_val(h):
     if make_secure_val(val) == h:
         return val
 
+
 def getApi(post):
-    out={}
-    out['subject']=post.subject
-    out['content']=post.content
-    out['created']=post.created.strftime("%c")
+    out = {}
+    out['subject'] = post.subject
+    out['content'] = post.content
+    out['created'] = post.created.strftime("%c")
     return out
 
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(autoescape=True, extensions=['jinja2.ext.autoescape'],
                                loader=jinja2.FileSystemLoader(template_dir))
+
+q_time=0
+def query_posts(update=False):
+
+    global q_time
+    key='top'
+    posts=memcache.get(key)
+    if posts is None or update:
+        logging.error('DB QUERY')
+        posts = db.GqlQuery('SELECT * FROM Post ORDER BY created DESC LIMIT 10')
+        memcache.set(key,posts)
+        posts = list(posts)
+        q_time=time.time()
+
+    return posts
 
 
 # css_dir=os.path.join(os.path.dirname(__file__), "stylesheets")
@@ -70,8 +88,10 @@ class Handler(webapp2.RequestHandler):
 
 class MainHandler(Handler):
     def render_mainpg(self):
-        posts = db.GqlQuery('SELECT * FROM Post ORDER BY created DESC LIMIT 10')
+        posts = query_posts()
         self.render("main.html", posts=posts)
+        time_diff=time.time()-q_time
+        self.write('Queried {} seconds ago'.format(time_diff))
 
     def get(self):
         self.render_mainpg()
@@ -102,6 +122,7 @@ class NewPostHandler(Handler):
             # content=content.replace('\n','<br>')
             p = Post(content=content, subject=subject)
             p.put()
+            query_posts(update=True)
             post_path = p.key().id()
             time.sleep(0.1)
             self.redirect('/{}'.format(post_path))
@@ -222,13 +243,12 @@ class LogoutHandler(Handler):
 class JsonHandler1(Handler):
     def get(self):
         posts = db.GqlQuery('SELECT * FROM Post')
-        jsonOut=[]
-        self.response.headers['Content-Type']='application/json'
+        jsonOut = []
+        self.response.headers['Content-Type'] = 'application/json'
 
         for post in posts:
             jsonOut.append(getApi(post))
-        jsonOut=json.dumps(jsonOut)
-
+        jsonOut = json.dumps(jsonOut)
 
         self.write(jsonOut)
 
@@ -241,7 +261,7 @@ class JsonPostHandler(Handler):
         if not post:
             self.abort(404)
             return
-        self.response.headers['Content-Type']='application/json'
+        self.response.headers['Content-Type'] = 'application/json'
         self.write(json.dumps(getApi(post)))
         # self.write(self.response.headers)
 
@@ -254,6 +274,6 @@ app = webapp2.WSGIApplication([
     ('/welcome', WelcomeHandler),
     ('/login', LoginHandler),
     ('/logout', LogoutHandler),
-    (r'/.json',JsonHandler1),
-    (r'/\d+.json',JsonPostHandler)
+    (r'/.json', JsonHandler1),
+    (r'/\d+.json', JsonPostHandler)
 ], debug=True)
