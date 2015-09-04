@@ -141,6 +141,8 @@ class PostHandler(Handler):
             return
         posts = []
         posts.append(post)
+        time_diff=time.time()-q_time
+        self.write('Queried {} seconds ago'.format(time_diff))
         self.render('main.html', posts=posts)
 
 
@@ -266,6 +268,12 @@ class JsonPostHandler(Handler):
         # self.write(self.response.headers)
 
 
+class FlushHandler(Handler):
+    def get(self):
+        memcache.flush_all()
+        self.redirect('/')
+
+
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
     ('/newpost', NewPostHandler),
@@ -275,5 +283,6 @@ app = webapp2.WSGIApplication([
     ('/login', LoginHandler),
     ('/logout', LogoutHandler),
     (r'/.json', JsonHandler1),
-    (r'/\d+.json', JsonPostHandler)
+    (r'/\d+.json', JsonPostHandler),
+    ('/flush',FlushHandler)
 ], debug=True)
